@@ -108,7 +108,7 @@ export const buildPrediction = (
   homeAnalysis: TeamAnalysis,
   awayAnalysis: TeamAnalysis,
   h2h: H2HStats
-): Prediction => {
+): Omit<Prediction, 'bettingRecommendations' | 'aiAgreement' | 'mistralPrediction'> => {
   const { homeScore, awayScore, reasons } = calculatePrediction(
     homeAnalysis.stats,
     awayAnalysis.stats,
