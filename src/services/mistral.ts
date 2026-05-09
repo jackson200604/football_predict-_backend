@@ -8,7 +8,8 @@ export const analyzWithMistral = async (
   awayTeam: string,
   homeAnalysis: TeamAnalysis,
   awayAnalysis: TeamAnalysis,
-  h2h: H2HStats
+  h2h: H2HStats,
+  scrapedData: string
 ): Promise<{
   prediction: string
   homeProbability: number
@@ -16,9 +17,17 @@ export const analyzWithMistral = async (
   drawProbability: number
   confidence: string
   reasons: string[]
+  bettingRecommendations: {
+    market: string
+    pick: string
+    odds: string
+    confidence: string
+    reasoning: string
+  }[]
 }> => {
   const prompt = `
-Tu es un expert en analyse de football. Analyse ces données et fais une prédiction précise.
+Tu es un expert en analyse de football et en paris sportifs.
+Analyse toutes ces données et fournis une prédiction complète avec recommandations de paris.
 
 MATCH: ${homeTeam} (domicile) vs ${awayTeam} (extérieur)
 
@@ -31,9 +40,8 @@ MATCH: ${homeTeam} (domicile) vs ${awayTeam} (extérieur)
 - Buts encaissés: ${homeAnalysis.stats.goalsConceded}
 - Clean sheets: ${homeAnalysis.stats.cleanSheets}
 - Victoires à domicile: ${homeAnalysis.stats.homeWins}
-- Blessures détectées: ${homeAnalysis.newsAnalysis.hasInjuries ? homeAnalysis.newsAnalysis.injuredPlayers.join(', ') : 'Aucune'}
+- Blessures: ${homeAnalysis.newsAnalysis.hasInjuries ? homeAnalysis.newsAnalysis.injuredPlayers.join(', ') : 'Aucune'}
 - Suspensions: ${homeAnalysis.newsAnalysis.hasSuspensions ? homeAnalysis.newsAnalysis.suspendedPlayers.join(', ') : 'Aucune'}
-- Forme générale: ${homeAnalysis.newsAnalysis.hasPositiveForm ? 'Positive' : homeAnalysis.newsAnalysis.hasNegativeForm ? 'Négative' : 'Neutre'}
 
 === STATISTIQUES ${awayTeam} ===
 - Forme récente: ${awayAnalysis.stats.form.join(', ')}
@@ -44,15 +52,17 @@ MATCH: ${homeTeam} (domicile) vs ${awayTeam} (extérieur)
 - Buts encaissés: ${awayAnalysis.stats.goalsConceded}
 - Clean sheets: ${awayAnalysis.stats.cleanSheets}
 - Victoires à l'extérieur: ${awayAnalysis.stats.awayWins}
-- Blessures détectées: ${awayAnalysis.newsAnalysis.hasInjuries ? awayAnalysis.newsAnalysis.injuredPlayers.join(', ') : 'Aucune'}
+- Blessures: ${awayAnalysis.newsAnalysis.hasInjuries ? awayAnalysis.newsAnalysis.injuredPlayers.join(', ') : 'Aucune'}
 - Suspensions: ${awayAnalysis.newsAnalysis.hasSuspensions ? awayAnalysis.newsAnalysis.suspendedPlayers.join(', ') : 'Aucune'}
-- Forme générale: ${awayAnalysis.newsAnalysis.hasPositiveForm ? 'Positive' : awayAnalysis.newsAnalysis.hasNegativeForm ? 'Négative' : 'Neutre'}
 
-=== CONFRONTATIONS DIRECTES (H2H) ===
+=== CONFRONTATIONS DIRECTES H2H ===
 - Total matchs: ${h2h.totalGames}
 - Victoires ${homeTeam}: ${h2h.homeWins}
 - Victoires ${awayTeam}: ${h2h.awayWins}
 - Nuls: ${h2h.draws}
+
+=== DONNÉES SITES SPÉCIALISÉS ===
+${scrapedData || 'Non disponibles'}
 
 === ACTUALITÉS RÉCENTES ===
 ${homeTeam}: ${homeAnalysis.news.slice(0, 2).map(n => n.title).join(' | ')}
@@ -65,11 +75,34 @@ Réponds UNIQUEMENT en JSON valide sans markdown :
   "awayProbability": nombre entre 0 et 100,
   "drawProbability": nombre entre 0 et 100,
   "confidence": "Élevée" ou "Moyenne" ou "Faible",
-  "reasons": ["raison 1", "raison 2", "raison 3", "raison 4", "raison 5"]
+  "reasons": ["raison 1", "raison 2", "raison 3", "raison 4", "raison 5"],
+  "bettingRecommendations": [
+    {
+      "market": "Résultat 1N2",
+      "pick": "1 (Domicile)",
+      "odds": "1.85",
+      "confidence": "Élevée",
+      "reasoning": "explication courte"
+    },
+    {
+      "market": "Les deux équipes marquent",
+      "pick": "Oui",
+      "odds": "1.70",
+      "confidence": "Moyenne",
+      "reasoning": "explication courte"
+    },
+    {
+      "market": "Total buts",
+      "pick": "Plus de 2.5",
+      "odds": "1.90",
+      "confidence": "Moyenne",
+      "reasoning": "explication courte"
+    }
+  ]
 }
 
 Les trois probabilités doivent totaliser exactement 100.
-Les raisons doivent être précises et basées sur les données fournies.
+Fournis 3 recommandations de paris différentes avec des marchés variés.
 `
 
   const response = await axios.post(
@@ -78,7 +111,7 @@ Les raisons doivent être précises et basées sur les données fournies.
       model: 'mistral-small-2503',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.3,
-      max_tokens: 1000
+      max_tokens: 1500
     },
     {
       headers: {
@@ -91,4 +124,5 @@ Les raisons doivent être précises et basées sur les données fournies.
   const content = response.data.choices[0].message.content
   const clean = content.replace(/```json|```/g, '').trim()
   return JSON.parse(clean)
+    }  return JSON.parse(clean)
   }
