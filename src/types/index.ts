@@ -60,10 +60,19 @@ export interface NewsAnalysis {
   suspendedPlayers: string[]
   sentimentScore: number
 }
+
 export interface TeamAnalysis {
   stats: TeamStats
   newsAnalysis: NewsAnalysis
   news: NewsItem[]
+}
+
+export interface BettingRecommendation {
+  market: string
+  pick: string
+  odds: string
+  confidence: string
+  reasoning: string
 }
 
 export interface Prediction {
@@ -73,7 +82,10 @@ export interface Prediction {
   prediction: string
   confidence: string
   reasons: string[]
+  bettingRecommendations: BettingRecommendation[]
+  aiAgreement: boolean
+  mistralPrediction: string
   homeAnalysis: TeamAnalysis
   awayAnalysis: TeamAnalysis
   h2h: H2HStats
-  }
+}
