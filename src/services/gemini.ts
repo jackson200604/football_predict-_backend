@@ -1,8 +1,7 @@
 import axios from 'axios'
 import { TeamAnalysis, H2HStats } from '../types'
 
-const GEMINI_API = 'https://generativelanguage.googleapis.com/v1beta/models/gemma-4-31b-it:generateContent'
-
+const GEMINI_API = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent'
 export const validateWithGemini = async (
   homeTeam: string,
   awayTeam: string,
