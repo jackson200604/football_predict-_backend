@@ -3,7 +3,7 @@ import { getTeamMatches, getH2H, extractTeamStats } from '../services/footballDa
 import { searchTeamNews } from '../services/serpapi'
 import { analyzeArticle } from '../services/jinaai'
 import { analyzeNews } from '../services/newsAnalyzer'
-import { buildPrediction } from '../services/predictionEngine'
+import { analyzWithMistral } from '../services/mistral'
 import { TeamAnalysis } from '../types'
 
 const router = Router()
@@ -15,7 +15,6 @@ router.get('/:homeTeamId/:awayTeamId', async (req: Request, res: Response) => {
     const homeTeam = req.query.homeTeam as string
     const awayTeam = req.query.awayTeam as string
 
-    // Extraction parallèle de toutes les données
     const [
       homeMatches,
       awayMatches,
@@ -30,13 +29,11 @@ router.get('/:homeTeamId/:awayTeamId', async (req: Request, res: Response) => {
       searchTeamNews(awayTeam)
     ])
 
-    // Analyser articles avec Jina AI
     const [homeArticle, awayArticle] = await Promise.all([
       homeNews[0]?.link ? analyzeArticle(homeNews[0].link) : Promise.resolve(''),
       awayNews[0]?.link ? analyzeArticle(awayNews[0].link) : Promise.resolve('')
     ])
 
-    // Enrichir les news avec Jina
     if (homeArticle) {
       homeNews.unshift({
         title: 'Analyse approfondie',
@@ -53,7 +50,6 @@ router.get('/:homeTeamId/:awayTeamId', async (req: Request, res: Response) => {
       })
     }
 
-    // Extraire stats et analyser news
     const homeStats = extractTeamStats(homeMatches, homeTeamId)
     const awayStats = extractTeamStats(awayMatches, awayTeamId)
     const homeNewsAnalysis = analyzeNews(homeNews)
@@ -71,8 +67,21 @@ router.get('/:homeTeamId/:awayTeamId', async (req: Request, res: Response) => {
       news: awayNews
     }
 
-    // Construire prédiction finale
-    const prediction = buildPrediction(homeAnalysis, awayAnalysis, h2h)
+    // Mistral IA pilote la prédiction
+    const mistralResult = await analyzWithMistral(
+      homeTeam,
+      awayTeam,
+      homeAnalysis,
+      awayAnalysis,
+      h2h
+    )
+
+    const prediction = {
+      ...mistralResult,
+      homeAnalysis,
+      awayAnalysis,
+      h2h
+    }
 
     res.json({ success: true, prediction })
 
