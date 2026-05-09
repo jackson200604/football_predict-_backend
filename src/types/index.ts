@@ -60,7 +60,6 @@ export interface NewsAnalysis {
   suspendedPlayers: string[]
   sentimentScore: number
 }
-
 export interface TeamAnalysis {
   stats: TeamStats
   newsAnalysis: NewsAnalysis
@@ -77,13 +76,4 @@ export interface Prediction {
   homeAnalysis: TeamAnalysis
   awayAnalysis: TeamAnalysis
   h2h: H2HStats
-  }
-export interface NewsAnalysis {
-  hasInjuries: boolean
-  hasSuspensions: boolean
-  hasPositiveForm: boolean      // ← ajouter
-  hasNegativeForm: boolean      // ← ajouter
-  injuredPlayers: string[]
-  suspendedPlayers: string[]
-  sentimentScore: number        // ← ajouter
   }
