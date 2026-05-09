@@ -3,14 +3,7 @@ import { TeamAnalysis, H2HStats } from '../types'
 
 const MISTRAL_API = 'https://api.mistral.ai/v1/chat/completions'
 
-export const analyzWithMistral = async (
-  homeTeam: string,
-  awayTeam: string,
-  homeAnalysis: TeamAnalysis,
-  awayAnalysis: TeamAnalysis,
-  h2h: H2HStats,
-  scrapedData: string
-): Promise<{
+interface MistralResult {
   prediction: string
   homeProbability: number
   awayProbability: number
@@ -24,10 +17,19 @@ export const analyzWithMistral = async (
     confidence: string
     reasoning: string
   }[]
-}> => {
+}
+
+export const analyzWithMistral = async (
+  homeTeam: string,
+  awayTeam: string,
+  homeAnalysis: TeamAnalysis,
+  awayAnalysis: TeamAnalysis,
+  h2h: H2HStats,
+  scrapedData: string
+): Promise<MistralResult> => {
   const prompt = `
-Tu es un expert en analyse de football et en paris sportifs.
-Analyse toutes ces données et fournis une prédiction complète avec recommandations de paris.
+Tu es un expert en analyse de football et paris sportifs.
+Analyse ces données et fais une prédiction complète avec recommandations de paris.
 
 MATCH: ${homeTeam} (domicile) vs ${awayTeam} (extérieur)
 
@@ -85,12 +87,45 @@ Réponds UNIQUEMENT en JSON valide sans markdown :
       "reasoning": "explication courte"
     },
     {
+      "market": "Total buts",
+      "pick": "Plus de 2.5",
+      "odds": "1.90",
+      "confidence": "Moyenne",
+      "reasoning": "explication courte"
+    },
+    {
       "market": "Les deux équipes marquent",
       "pick": "Oui",
       "odds": "1.70",
       "confidence": "Moyenne",
       "reasoning": "explication courte"
+    }
+  ]
+}
+
+Les trois probabilités doivent totaliser exactement 100.
+`
+
+  const response = await axios.post(
+    MISTRAL_API,
+    {
+      model: 'mistral-small-2503',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.3,
+      max_tokens: 1500
     },
+    {
+      headers: {
+        'Authorization': `Bearer ${process.env.MISTRAL_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  )
+
+  const content = response.data.choices[0].message.content
+  const clean = content.replace(/```json|```/g, '').trim()
+  return JSON.parse(clean)
+}    },
     {
       "market": "Total buts",
       "pick": "Plus de 2.5",
