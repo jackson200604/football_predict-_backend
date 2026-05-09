@@ -16,7 +16,6 @@ router.get('/:homeTeamId/:awayTeamId', async (req: Request, res: Response) => {
     const homeTeam = req.query.homeTeam as string
     const awayTeam = req.query.awayTeam as string
 
-    // Extraction parallèle
     const [
       homeMatches,
       awayMatches,
@@ -71,7 +70,6 @@ router.get('/:homeTeamId/:awayTeamId', async (req: Request, res: Response) => {
       news: awayNews
     }
 
-    // Étape 1 — Mistral analyse
     const mistralResult = await analyzWithMistral(
       homeTeam,
       awayTeam,
@@ -81,7 +79,6 @@ router.get('/:homeTeamId/:awayTeamId', async (req: Request, res: Response) => {
       scrapedData
     )
 
-    // Étape 2 — Gemma valide
     const geminiResult = await validateWithGemini(
       homeTeam,
       awayTeam,
@@ -91,7 +88,6 @@ router.get('/:homeTeamId/:awayTeamId', async (req: Request, res: Response) => {
       mistralResult
     )
 
-    // Fusion des résultats
     const finalConfidence = geminiResult.agreement
       ? geminiResult.confidence
       : 'Faible'
@@ -109,23 +105,19 @@ router.get('/:homeTeamId/:awayTeamId', async (req: Request, res: Response) => {
     res.json({ success: true, prediction })
 
   } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message })
+    console.error('Prediction error:', error?.response?.data || error.message)
+    res.status(500).json({
+      success: false,
+      error: error?.response?.data?.error?.message
+        || error?.response?.data?.message
+        || error?.message
+        || 'Erreur inconnue',
+      details: {
+        service: error?.config?.url || 'unknown',
+        status: error?.response?.status || 500
+      }
+    })
   }
 })
 
 export default router
-} catch (error: any) {
-  console.error('Prediction error:', error?.response?.data || error.message)
-  
-  res.status(500).json({
-    success: false,
-    error: error?.response?.data?.error?.message
-      || error?.response?.data?.message
-      || error?.message
-      || 'Erreur inconnue',
-    details: {
-      service: error?.config?.url || 'unknown',
-      status: error?.response?.status || 500
-    }
-  })
-    }
