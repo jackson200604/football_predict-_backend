@@ -114,3 +114,18 @@ router.get('/:homeTeamId/:awayTeamId', async (req: Request, res: Response) => {
 })
 
 export default router
+} catch (error: any) {
+  console.error('Prediction error:', error?.response?.data || error.message)
+  
+  res.status(500).json({
+    success: false,
+    error: error?.response?.data?.error?.message
+      || error?.response?.data?.message
+      || error?.message
+      || 'Erreur inconnue',
+    details: {
+      service: error?.config?.url || 'unknown',
+      status: error?.response?.status || 500
+    }
+  })
+    }
