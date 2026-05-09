@@ -1,17 +1,80 @@
-import 'dotenv/config'
-import express from 'express'
-import cors from 'cors'
+export interface Team {
+  id: number
+  name: string
+}
 
-const app = express()
+export interface Competition {
+  id: number
+  name: string
+}
 
-app.use(cors())
-app.use(express.json())
+export interface Score {
+  winner: string | null
+  fullTime: {
+    home: number | null
+    away: number | null
+  }
+}
 
-app.get('/', (req, res) => {
-  res.json({ message: 'Football Predictions API ✅' })
-})
+export interface Match {
+  id: number
+  homeTeam: Team
+  awayTeam: Team
+  utcDate: string
+  competition: Competition
+  score: Score
+  status: string
+}
 
-const PORT = process.env.PORT || 3000
-app.listen(PORT, () => {
-  console.log(`Serveur lancé sur le port ${PORT}`)
-})
+export interface NewsItem {
+  title: string
+  link: string
+  snippet: string
+}
+
+export interface TeamStats {
+  wins: number
+  draws: number
+  losses: number
+  goalsScored: number
+  goalsConceded: number
+  form: string[]
+  homeWins: number
+  awayWins: number
+  cleanSheets: number
+}
+
+export interface H2HStats {
+  homeWins: number
+  awayWins: number
+  draws: number
+  totalGames: number
+}
+
+export interface NewsAnalysis {
+  hasInjuries: boolean
+  hasSuspensions: boolean
+  hasPositiveForm: boolean
+  hasNegativeForm: boolean
+  injuredPlayers: string[]
+  suspendedPlayers: string[]
+  sentimentScore: number
+}
+
+export interface TeamAnalysis {
+  stats: TeamStats
+  newsAnalysis: NewsAnalysis
+  news: NewsItem[]
+}
+
+export interface Prediction {
+  homeProbability: number
+  awayProbability: number
+  drawProbability: number
+  prediction: string
+  confidence: string
+  reasons: string[]
+  homeAnalysis: TeamAnalysis
+  awayAnalysis: TeamAnalysis
+  h2h: H2HStats
+}
