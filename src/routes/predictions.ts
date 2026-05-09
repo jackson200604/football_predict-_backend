@@ -4,6 +4,7 @@ import { searchTeamNews } from '../services/serpapi'
 import { analyzeArticle, scrapeMatchSources } from '../services/jinaai'
 import { analyzeNews } from '../services/newsAnalyzer'
 import { analyzWithMistral } from '../services/mistral'
+import { validateWithGemini } from '../services/gemini'
 import { TeamAnalysis } from '../types'
 
 const router = Router()
@@ -70,7 +71,7 @@ router.get('/:homeTeamId/:awayTeamId', async (req: Request, res: Response) => {
       news: awayNews
     }
 
-    // Mistral avec données scrappées
+    // Étape 1 — Mistral analyse
     const mistralResult = await analyzWithMistral(
       homeTeam,
       awayTeam,
@@ -80,8 +81,26 @@ router.get('/:homeTeamId/:awayTeamId', async (req: Request, res: Response) => {
       scrapedData
     )
 
+    // Étape 2 — Gemma valide
+    const geminiResult = await validateWithGemini(
+      homeTeam,
+      awayTeam,
+      homeAnalysis,
+      awayAnalysis,
+      h2h,
+      mistralResult
+    )
+
+    // Fusion des résultats
+    const finalConfidence = geminiResult.agreement
+      ? geminiResult.confidence
+      : 'Faible'
+
     const prediction = {
-      ...mistralResult,
+      ...geminiResult,
+      confidence: finalConfidence,
+      aiAgreement: geminiResult.agreement,
+      mistralPrediction: mistralResult.prediction,
       homeAnalysis,
       awayAnalysis,
       h2h
@@ -94,4 +113,4 @@ router.get('/:homeTeamId/:awayTeamId', async (req: Request, res: Response) => {
   }
 })
 
-export default routerexport default router
+export default router
