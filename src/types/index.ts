@@ -78,3 +78,12 @@ export interface Prediction {
   awayAnalysis: TeamAnalysis
   h2h: H2HStats
   }
+export interface NewsAnalysis {
+  hasInjuries: boolean
+  hasSuspensions: boolean
+  hasPositiveForm: boolean      // ← ajouter
+  hasNegativeForm: boolean      // ← ajouter
+  injuredPlayers: string[]
+  suspendedPlayers: string[]
+  sentimentScore: number        // ← ajouter
+  }
