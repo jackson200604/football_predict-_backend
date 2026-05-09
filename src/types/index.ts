@@ -82,9 +82,9 @@ export interface Prediction {
   prediction: string
   confidence: string
   reasons: string[]
-  bettingRecommendations: BettingRecommendation[]
-  aiAgreement: boolean
-  mistralPrediction: string
+  bettingRecommendations?: BettingRecommendation[]
+  aiAgreement?: boolean
+  mistralPrediction?: string
   homeAnalysis: TeamAnalysis
   awayAnalysis: TeamAnalysis
   h2h: H2HStats
