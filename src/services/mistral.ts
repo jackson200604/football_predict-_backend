@@ -141,6 +141,57 @@ export const analyzWithMistral = async (
   const content = response.data.choices[0].message.content
   const clean = content.replace(/```json|```/g, '').trim()
   return JSON.parse(clean)
+}    '  "homeProbability": nombre entre 0 et 100,',
+    '  "awayProbability": nombre entre 0 et 100,',
+    '  "drawProbability": nombre entre 0 et 100,',
+    '  "confidence": "Elevee" ou "Moyenne" ou "Faible",',
+    '  "reasons": ["raison 1", "raison 2", "raison 3"],',
+    '  "bettingRecommendations": [',
+    '    {"market": "Resultat 1N2", "pick": "1", "odds": "1.85", "confidence": "Elevee", "reasoning": "explication"},',
+    '    {"market": "Total buts", "pick": "Plus de 2.5", "odds": "1.90", "confidence": "Moyenne", "reasoning": "explication"},',
+    '    {"market": "Les deux equipes marquent", "pick": "Oui", "odds": "1.70", "confidence": "Moyenne", "reasoning": "explication"}',
+    '  ]',
+    '}',
+    'Les trois probabilites doivent totaliser exactement 100.'
+  ].join('\n')
+}
+
+export const analyzWithMistral = async (
+  homeTeam: string,
+  awayTeam: string,
+  homeAnalysis: TeamAnalysis,
+  awayAnalysis: TeamAnalysis,
+  h2h: H2HStats,
+  scrapedData: string
+): Promise<MistralResult> => {
+  const prompt = buildPrompt(
+    homeTeam,
+    awayTeam,
+    homeAnalysis,
+    awayAnalysis,
+    h2h,
+    scrapedData
+  )
+
+  const response = await axios.post(
+    MISTRAL_API,
+    {
+      model: 'mistral-small-2503',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.3,
+      max_tokens: 1500
+    },
+    {
+      headers: {
+        'Authorization': 'Bearer ' + process.env.MISTRAL_API_KEY,
+        'Content-Type': 'application/json'
+      }
+    }
+  )
+
+  const content = response.data.choices[0].message.content
+  const clean = content.replace(/```json|```/g, '').trim()
+  return JSON.parse(clean)
     }      "confidence": "Moyenne",
       "reasoning": "explication courte"
     },
