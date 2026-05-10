@@ -1,96 +1,105 @@
 import axios from 'axios'
 import { TeamAnalysis, H2HStats } from '../types'
 
-const GEMINI_API = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent'
-export const validateWithGemini = async (
-  homeTeam: string,
-  awayTeam: string,
-  homeAnalysis: TeamAnalysis,
-  awayAnalysis: TeamAnalysis,
-  h2h: H2HStats,
-  mistralPrediction: {
-    prediction: string
-    homeProbability: number
-    awayProbability: number
-    drawProbability: number
-    confidence: string
-    reasons: string[]
-    bettingRecommendations: any[]
-  }
-): Promise<{
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent'
+
+interface BettingRec {
+  market: string
+  pick: string
+  odds: string
+  confidence: string
+  reasoning: string
+}
+
+interface GeminiResult {
   prediction: string
   homeProbability: number
   awayProbability: number
   drawProbability: number
   confidence: string
   reasons: string[]
-  bettingRecommendations: {
-    market: string
-    pick: string
-    odds: string
-    confidence: string
-    reasoning: string
-  }[]
+  bettingRecommendations: BettingRec[]
   agreement: boolean
-}> => {
-  const prompt = `
-Tu es un expert en analyse de football et paris sportifs.
-Une première IA (Mistral) a déjà analysé ce match. Valide ou corrige sa prédiction.
+}
 
-MATCH: ${homeTeam} (domicile) vs ${awayTeam} (extérieur)
+interface MistralResult {
+  prediction: string
+  homeProbability: number
+  awayProbability: number
+  drawProbability: number
+  confidence: string
+  reasons: string[]
+  bettingRecommendations: BettingRec[]
+}
 
-=== STATISTIQUES ${homeTeam} ===
-- Forme récente: ${homeAnalysis.stats.form.join(', ')}
-- Victoires: ${homeAnalysis.stats.wins}
-- Nuls: ${homeAnalysis.stats.draws}
-- Défaites: ${homeAnalysis.stats.losses}
-- Buts marqués: ${homeAnalysis.stats.goalsScored}
-- Buts encaissés: ${homeAnalysis.stats.goalsConceded}
-- Clean sheets: ${homeAnalysis.stats.cleanSheets}
-- Victoires à domicile: ${homeAnalysis.stats.homeWins}
-- Blessures: ${homeAnalysis.newsAnalysis.hasInjuries ? homeAnalysis.newsAnalysis.injuredPlayers.join(', ') : 'Aucune'}
-- Suspensions: ${homeAnalysis.newsAnalysis.hasSuspensions ? homeAnalysis.newsAnalysis.suspendedPlayers.join(', ') : 'Aucune'}
+export const validateWithGemini = async (
+  homeTeam: string,
+  awayTeam: string,
+  homeAnalysis: TeamAnalysis,
+  awayAnalysis: TeamAnalysis,
+  h2h: H2HStats,
+  mistralPrediction: MistralResult
+): Promise<GeminiResult> => {
+  const lines: string[] = []
+  lines.push('You are a football analysis expert.')
+  lines.push('A first AI (Mistral) already analyzed this match.')
+  lines.push('Validate or correct its prediction.')
+  lines.push('MATCH: ' + homeTeam + ' vs ' + awayTeam)
+  lines.push('HOME TEAM: ' + homeTeam)
+  lines.push('Form: ' + homeAnalysis.stats.form.join(','))
+  lines.push('Wins: ' + homeAnalysis.stats.wins)
+  lines.push('Draws: ' + homeAnalysis.stats.draws)
+  lines.push('Losses: ' + homeAnalysis.stats.losses)
+  lines.push('Goals scored: ' + homeAnalysis.stats.goalsScored)
+  lines.push('Goals conceded: ' + homeAnalysis.stats.goalsConceded)
+  lines.push('Clean sheets: ' + homeAnalysis.stats.cleanSheets)
+  lines.push('Home wins: ' + homeAnalysis.stats.homeWins)
+  lines.push('Injuries: ' + (homeAnalysis.newsAnalysis.hasInjuries ? homeAnalysis.newsAnalysis.injuredPlayers.join(',') : 'none'))
+  lines.push('Suspensions: ' + (homeAnalysis.newsAnalysis.hasSuspensions ? homeAnalysis.newsAnalysis.suspendedPlayers.join(',') : 'none'))
+  lines.push('AWAY TEAM: ' + awayTeam)
+  lines.push('Form: ' + awayAnalysis.stats.form.join(','))
+  lines.push('Wins: ' + awayAnalysis.stats.wins)
+  lines.push('Draws: ' + awayAnalysis.stats.draws)
+  lines.push('Losses: ' + awayAnalysis.stats.losses)
+  lines.push('Goals scored: ' + awayAnalysis.stats.goalsScored)
+  lines.push('Goals conceded: ' + awayAnalysis.stats.goalsConceded)
+  lines.push('Clean sheets: ' + awayAnalysis.stats.cleanSheets)
+  lines.push('Away wins: ' + awayAnalysis.stats.awayWins)
+  lines.push('Injuries: ' + (awayAnalysis.newsAnalysis.hasInjuries ? awayAnalysis.newsAnalysis.injuredPlayers.join(',') : 'none'))
+  lines.push('Suspensions: ' + (awayAnalysis.newsAnalysis.hasSuspensions ? awayAnalysis.newsAnalysis.suspendedPlayers.join(',') : 'none'))
+  lines.push('H2H total: ' + h2h.totalGames)
+  lines.push('H2H home wins: ' + h2h.homeWins)
+  lines.push('H2H away wins: ' + h2h.awayWins)
+  lines.push('H2H draws: ' + h2h.draws)
+  lines.push('MISTRAL PREDICTION:')
+  lines.push('Prediction: ' + mistralPrediction.prediction)
+  lines.push('Home: ' + mistralPrediction.homeProbability + '%')
+  lines.push('Draw: ' + mistralPrediction.drawProbability + '%')
+  lines.push('Away: ' + mistralPrediction.awayProbability + '%')
+  lines.push('Confidence: ' + mistralPrediction.confidence)
+  lines.push('Respond ONLY in valid JSON without markdown:')
+  lines.push('{"agreement":true,"prediction":"Home wins","homeProbability":50,"awayProbability":30,"drawProbability":20,"confidence":"High","reasons":["r1","r2","r3","r4","r5"],"bettingRecommendations":[{"market":"1X2","pick":"1","odds":"1.85","confidence":"High","reasoning":"short"},{"market":"Over/Under","pick":"Over 2.5","odds":"1.90","confidence":"Medium","reasoning":"short"},{"market":"BTTS","pick":"Yes","odds":"1.70","confidence":"Medium","reasoning":"short"},{"market":"Half Time","pick":"1","odds":"2.10","confidence":"Medium","reasoning":"short"},{"market":"Asian Handicap","pick":"Home -0.5","odds":"2.00","confidence":"Low","reasoning":"short"}]}')
+  lines.push('Set agreement to true if you agree with Mistral, false if not.')
+  lines.push('The three probabilities must total exactly 100.')
+  lines.push('Provide exactly 5 betting recommendations.')
 
-=== STATISTIQUES ${awayTeam} ===
-- Forme récente: ${awayAnalysis.stats.form.join(', ')}
-- Victoires: ${awayAnalysis.stats.wins}
-- Nuls: ${awayAnalysis.stats.draws}
-- Défaites: ${awayAnalysis.stats.losses}
-- Buts marqués: ${awayAnalysis.stats.goalsScored}
-- Buts encaissés: ${awayAnalysis.stats.goalsConceded}
-- Clean sheets: ${awayAnalysis.stats.cleanSheets}
-- Victoires à l'extérieur: ${awayAnalysis.stats.awayWins}
-- Blessures: ${awayAnalysis.newsAnalysis.hasInjuries ? awayAnalysis.newsAnalysis.injuredPlayers.join(', ') : 'Aucune'}
-- Suspensions: ${awayAnalysis.newsAnalysis.hasSuspensions ? awayAnalysis.newsAnalysis.suspendedPlayers.join(', ') : 'Aucune'}
+  const prompt = lines.join('\n')
 
-=== CONFRONTATIONS DIRECTES H2H ===
-- Total matchs: ${h2h.totalGames}
-- Victoires ${homeTeam}: ${h2h.homeWins}
-- Victoires ${awayTeam}: ${h2h.awayWins}
-- Nuls: ${h2h.draws}
-
-=== PRÉDICTION DE MISTRAL ===
-- Prédiction: ${mistralPrediction.prediction}
-- Domicile: ${mistralPrediction.homeProbability}%
-- Nul: ${mistralPrediction.drawProbability}%
-- Extérieur: ${mistralPrediction.awayProbability}%
-- Confiance: ${mistralPrediction.confidence}
-- Raisons: ${mistralPrediction.reasons.join(' | ')}
-
-Réponds UNIQUEMENT en JSON valide sans markdown :
-{
-  "agreement": true ou false,
-  "prediction": "Domicile gagne" ou "Extérieur gagne" ou "Match nul probable",
-  "homeProbability": nombre entre 0 et 100,
-  "awayProbability": nombre entre 0 et 100,
-  "drawProbability": nombre entre 0 et 100,
-  "confidence": "Élevée" ou "Moyenne" ou "Faible",
-  "reasons": ["raison 1", "raison 2", "raison 3", "raison 4", "raison 5"],
-  "bettingRecommendations": [
+  const response = await axios.post(
+    GEMINI_URL + '?key=' + process.env.GEMINI_API_KEY,
     {
-      "market": "Résultat 1N2",
-      "pick": "1 (Domicile)",
-      "odds": "1.85",
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 2000
+      }
+    }
+  )
+
+  const content = response.data.candidates[0].content.parts[0].text
+  const clean = content.replace(/```json|```/g, '').trim()
+  return JSON.parse(clean)
+    }      "odds": "1.85",
       "confidence": "Élevée",
       "reasoning": "explication courte"
     },
