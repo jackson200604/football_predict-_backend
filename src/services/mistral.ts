@@ -2,7 +2,7 @@ import axios from 'axios'
 import { TeamAnalysis, H2HStats } from '../types'
 
 const MISTRAL_API = 'https://api.mistral.ai/v1/chat/completions'
-const MISTRAL_MODEL = 'mistral-small-2509'
+const MISTRAL_MODEL = 'magistral-small-2509'
 
 interface BettingRec {
   market: string
