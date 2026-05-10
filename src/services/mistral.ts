@@ -80,6 +80,6 @@ export const analyzWithMistral = async (
   )
 
   const content = response.data.choices[0].message.content
-  const clean = content.replace(/```json|```/g, '').trim()
-  return JSON.parse(clean)
-                                                     }
+const contentStr = typeof content === 'string' ? content : JSON.stringify(content)
+const clean = contentStr.replace(/```json|```/g, '').trim()
+return JSON.parse(clean)
