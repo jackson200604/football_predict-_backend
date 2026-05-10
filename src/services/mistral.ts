@@ -2,7 +2,7 @@ import axios from 'axios'
 import { TeamAnalysis, H2HStats } from '../types'
 
 const MISTRAL_API = 'https://api.mistral.ai/v1/chat/completions'
-const MISTRAL_MODEL = 'magistral-small-2509'
+const MISTRAL_MODEL = 'mistral-small-latest'
 
 interface BettingRec {
   market: string
@@ -80,6 +80,7 @@ export const analyzWithMistral = async (
   )
 
   const content = response.data.choices[0].message.content
-const contentStr = typeof content === 'string' ? content : JSON.stringify(content)
-const clean = contentStr.replace(/```json|```/g, '').trim()
-return JSON.parse(clean)
+  const contentStr = typeof content === 'string' ? content : JSON.stringify(content)
+  const clean = contentStr.replace(/```json|```/g, '').trim()
+  return JSON.parse(clean)
+    }
